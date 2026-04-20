@@ -4,8 +4,14 @@ import { useGLTF } from '@react-three/drei'
 import './index.css'
 import App from './App.tsx'
 import { OFFICE_ACTOR_DEFINITIONS, resolveCharacterModelUrl } from './office/officeActorDefinitions'
+import { PET_DEFINITIONS } from './office/petDefinitions'
 
-const characterModelUrls = [...new Set(OFFICE_ACTOR_DEFINITIONS.map((d) => resolveCharacterModelUrl(d.character)))]
+const characterModelUrls = [
+  ...new Set([
+    ...OFFICE_ACTOR_DEFINITIONS.map((d) => resolveCharacterModelUrl(d.character)),
+    ...PET_DEFINITIONS.map((pet) => resolveCharacterModelUrl(pet.character)),
+  ]),
+]
 characterModelUrls.forEach((url) => useGLTF.preload(url))
 
 createRoot(document.getElementById('root')!).render(
