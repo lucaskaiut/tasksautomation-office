@@ -3,20 +3,29 @@ import { Html, useAnimations, useGLTF } from '@react-three/drei';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { SCENE_CONFIG } from '../sceneConfig';
+import { isPointBlockedByFurniture, resolveFurnitureCollision } from './officeFurniture';
 import { resolveCharacterModelUrl } from './officeActorDefinitions';
 import { clipSearchVariantsWithFallback, findAnimationAction } from './animationResolve';
 import { useActorRuntime } from './ActorRuntimeProvider';
 
 const WANDER_ANIMATION_IDS = new Set(['walk', 'sprint']);
+const ACTOR_COLLISION_RADIUS = 0.32;
 
 export type OfficeActorProps = {
   actorId: string;
   name: string;
   character: string;
   spawnPosition: [number, number, number];
+  spawnRotation?: [number, number, number];
 };
 
-export function OfficeActor({ actorId, name, character, spawnPosition }: OfficeActorProps) {
+export function OfficeActor({
+  actorId,
+  name,
+  character,
+  spawnPosition,
+  spawnRotation = [0, 0, 0],
+}: OfficeActorProps) {
   const rootRef = useRef<THREE.Group>(null);
   const skinRef = useRef<THREE.Object3D>(null);
   const targetRef = useRef(
@@ -77,10 +86,7 @@ export function OfficeActor({ actorId, name, character, spawnPosition }: OfficeA
       const dirX = dx / distance;
       const dirZ = dz / distance;
 
-      current.x += dirX * speed * delta;
-      current.z += dirZ * speed * delta;
-
-      clampPosition(current, SCENE_CONFIG.actor.bounds);
+      moveActor(current, { x: dirX, z: dirZ }, speed, delta);
 
       const desiredRotationY = Math.atan2(dirX, dirZ);
       root.rotation.y = lerpAngle(
@@ -113,10 +119,7 @@ export function OfficeActor({ actorId, name, character, spawnPosition }: OfficeA
       const dirX = dx / distance;
       const dirZ = dz / distance;
 
-      current.x += dirX * speed * delta;
-      current.z += dirZ * speed * delta;
-
-      clampPosition(current, SCENE_CONFIG.actor.bounds);
+      moveActor(current, { x: dirX, z: dirZ }, speed, delta);
 
       const desiredRotationY = Math.atan2(dirX, dirZ);
       root.rotation.y = lerpAngle(
@@ -142,6 +145,9 @@ export function OfficeActor({ actorId, name, character, spawnPosition }: OfficeA
           lastRequestedAnimationRef.current = command.onArriveAnimationId;
           dispatch({ type: 'SET_ACTOR_ANIMATION', actorId, animationId: command.onArriveAnimationId });
         }
+        if (command.onArriveAnimationId === 'sit') {
+          root.rotation.set(spawnRotation[0], spawnRotation[1], spawnRotation[2]);
+        }
         dispatch({ type: 'CLEAR_ACTOR_COMMAND', actorId });
         return;
       }
@@ -149,10 +155,7 @@ export function OfficeActor({ actorId, name, character, spawnPosition }: OfficeA
       const dirX = dx / distance;
       const dirZ = dz / distance;
 
-      current.x += dirX * speed * delta;
-      current.z += dirZ * speed * delta;
-
-      clampPosition(current, SCENE_CONFIG.actor.bounds);
+      moveActor(current, { x: dirX, z: dirZ }, speed, delta);
 
       const desiredRotationY = Math.atan2(dirX, dirZ);
       root.rotation.y = lerpAngle(
@@ -179,17 +182,14 @@ export function OfficeActor({ actorId, name, character, spawnPosition }: OfficeA
     const dirX = dx / distance;
     const dirZ = dz / distance;
 
-    current.x += dirX * speed * delta;
-    current.z += dirZ * speed * delta;
-
-    clampPosition(current, SCENE_CONFIG.actor.bounds);
+    moveActor(current, { x: dirX, z: dirZ }, speed, delta);
 
     const desiredRotationY = Math.atan2(dirX, dirZ);
     root.rotation.y = lerpAngle(root.rotation.y, desiredRotationY, Math.min(1, delta * SCENE_CONFIG.actor.rotationLerp));
   });
 
   return (
-    <group ref={rootRef} position={spawnPosition}>
+    <group ref={rootRef} position={spawnPosition} rotation={spawnRotation}>
       <primitive
         ref={skinRef}
         object={clonedScene}
@@ -231,10 +231,21 @@ function createNextTarget(
 
   let x = randomBetween(minX, maxX);
   let z = randomBetween(minZ, maxZ);
+  let attempts = 0;
 
-  if (currentPosition) {
-    let attempts = 0;
-    while (distance2D(currentPosition.x, currentPosition.z, x, z) < 1.2 && attempts < 12) {
+  while (attempts < 18) {
+    const tooClose = currentPosition ? distance2D(currentPosition.x, currentPosition.z, x, z) < 1.2 : false;
+    const blocked = isPointBlockedByFurniture(x, z, ACTOR_COLLISION_RADIUS);
+    if (!tooClose && !blocked) {
+      break;
+    }
+    x = randomBetween(minX, maxX);
+    z = randomBetween(minZ, maxZ);
+    attempts += 1;
+  }
+
+  if (currentPosition && attempts >= 18) {
+    while (distance2D(currentPosition.x, currentPosition.z, x, z) < 1.2 && attempts < 30) {
       x = randomBetween(minX, maxX);
       z = randomBetween(minZ, maxZ);
       attempts += 1;
@@ -250,6 +261,25 @@ function clampPosition(
 ) {
   position.x = Math.max(bounds.minX, Math.min(bounds.maxX, position.x));
   position.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, position.z));
+}
+
+function moveActor(
+  position: { x: number; z: number },
+  direction: { x: number; z: number },
+  speed: number,
+  delta: number
+) {
+  const previous = { x: position.x, z: position.z };
+  const next = {
+    x: position.x + direction.x * speed * delta,
+    z: position.z + direction.z * speed * delta,
+  };
+
+  clampPosition(next, SCENE_CONFIG.actor.bounds);
+  const resolved = resolveFurnitureCollision(next, previous, ACTOR_COLLISION_RADIUS);
+
+  position.x = resolved.x;
+  position.z = resolved.z;
 }
 
 function lerpAngle(start: number, end: number, alpha: number) {

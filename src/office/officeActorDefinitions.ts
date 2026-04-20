@@ -3,6 +3,7 @@ export type OfficeActorDefinition = {
   name: string;
   character: string;
   spawnPosition: [number, number, number];
+  spawnRotation?: [number, number, number];
 };
 
 export function resolveCharacterModelUrl(character: string) {
@@ -10,13 +11,26 @@ export function resolveCharacterModelUrl(character: string) {
 }
 
 export const OFFICE_ACTOR_DEFINITIONS: OfficeActorDefinition[] = [
-  { id: 'analysis', name: 'Worker 01', character: 'character', spawnPosition: [-7.2, 0, 4.2] },
-  { id: 'implementation:frontend', name: 'Worker 02', character: 'character', spawnPosition: [-6.4, 0, 4.2] },
+  {
+    id: 'analysis',
+    name: 'Worker 01',
+    character: 'character',
+    spawnPosition: [-7.7, 0, 4.05],
+    spawnRotation: [0, Math.PI, 0],
+  },
+  {
+    id: 'implementation:frontend',
+    name: 'Worker 02',
+    character: 'character',
+    spawnPosition: [-6.85, 0, 4.05],
+    spawnRotation: [0, Math.PI, 0],
+  },
   {
     id: 'implementation:backend',
     name: 'Worker 03',
     character: 'character',
-    spawnPosition: [-6.8, 0, 3.5],
+    spawnPosition: [-6, 0, 4.05],
+    spawnRotation: [0, Math.PI, 0],
   },
 ];
 

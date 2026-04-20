@@ -70,17 +70,17 @@ export function issueActorReturnToPoint(
   dispatch: Dispatch<ActorRuntimeAction>,
   actorId: string,
   target: { x: number; z: number },
-  movementAnimationId: 'walk' | 'sprint' = 'walk'
+  movementAnimationId: 'walk' | 'sprint' = 'walk',
+  onArriveAnimationId: 'idle' | 'sit' = 'idle'
 ) {
   const command: ActorCommand = {
     type: 'GO_TO_POINT',
     target,
     arriveDistance: 0.25,
     movementAnimationId,
-    onArriveAnimationId: 'idle',
+    onArriveAnimationId,
   };
 
   dispatch({ type: 'SET_ACTOR_COMMAND', actorId, command });
   return { ok: true as const };
 }
-

@@ -125,8 +125,7 @@ export function TasksRealtimeBridge() {
       const timeoutId = window.setTimeout(() => {
         const home = resolveHomePointForActor(actorId);
         if (!home) return;
-        issueActorReturnToPoint(dispatch, actorId, home, 'walk');
-        dispatch({ type: 'SET_ACTOR_ANIMATION', actorId, animationId: 'idle' });
+        issueActorReturnToPoint(dispatch, actorId, home, 'walk', 'sit');
       }, delayMs);
       timeoutsByActorRef.current.set(actorId, timeoutId);
     };
@@ -163,8 +162,7 @@ export function TasksRealtimeBridge() {
 
       const home = resolveHomePointForActor(actorId);
       if (!home) return;
-      issueActorReturnToPoint(dispatch, actorId, home, 'walk');
-      dispatch({ type: 'SET_ACTOR_ANIMATION', actorId, animationId: 'idle' });
+      issueActorReturnToPoint(dispatch, actorId, home, 'walk', 'sit');
     };
 
     const onEvent = (event: TasksRealtimeEvent) => {
@@ -218,4 +216,3 @@ export function TasksRealtimeBridge() {
 
   return null;
 }
-

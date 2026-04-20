@@ -9,6 +9,7 @@ import { buildInitialActorRuntime, OFFICE_ACTOR_DEFINITIONS } from './office/off
 import { DeskFurniture } from './office/DeskFurniture';
 import { OFFICE_FURNITURE } from './office/officeFurniture';
 import { OfficeActor } from './office/OfficeActor';
+import { SofaFurniture } from './office/SofaFurniture';
 import { SCENE_CONFIG } from './sceneConfig';
 import { TasksRealtimeBridge } from './realtime/TasksRealtimeBridge';
 
@@ -16,7 +17,7 @@ function App() {
   const orbitRef = useRef<OrbitControlsImpl | null>(null);
 
   return (
-    <ActorRuntimeProvider initialActors={buildInitialActorRuntime('idle')}>
+    <ActorRuntimeProvider initialActors={buildInitialActorRuntime('sit')}>
       <div className="office-layout">
         <aside className="office-sidebar">
           <ActorControlPanel />
@@ -56,6 +57,7 @@ function App() {
                   name={def.name}
                   character={def.character}
                   spawnPosition={def.spawnPosition}
+                  spawnRotation={def.spawnRotation}
                 />
               ))}
             </Suspense>
@@ -125,6 +127,17 @@ function OfficeStage() {
           position={desk.position}
           rotation={desk.rotation}
           ownerActorId={desk.ownerActorId}
+        />
+      ))}
+
+      {OFFICE_FURNITURE.filter((piece) => piece.kind === 'sofa').map((sofa) => (
+        <SofaFurniture
+          key={sofa.id}
+          furnitureId={sofa.id}
+          modelUrl={sofa.modelUrl || '/models/furnitures/loungeDesignSofa.glb'}
+          position={sofa.position}
+          rotation={sofa.rotation}
+          scale={sofa.scale}
         />
       ))}
     </group>
