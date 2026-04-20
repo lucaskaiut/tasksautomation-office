@@ -19,6 +19,7 @@ const FALLBACK_CLIP_NAMES: Record<string, string[]> = {
   sprint: ['run', 'running', 'jog'],
   idle: ['standing', 'stand', 'breathing'],
   sit: ['sitting', 'seated', 'chair'],
+  eat: ['eating', 'drink', 'drinking', 'consume', 'sit', 'idle'],
   'pick-up': ['pickup', 'pick', 'grab', 'take'],
   'emote-yes': ['emoteyes', 'yes', 'nod', 'thumbsup'],
   'emote-no': ['emoteno', 'no', 'shake', 'headshake'],

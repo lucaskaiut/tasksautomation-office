@@ -23,8 +23,10 @@ Além do controle manual via UI, os atores podem reagir a **eventos em tempo rea
 - **Composição do app/cena**: `src/App.tsx`
 - **Configuração de cena**: `src/sceneConfig.ts`
 - **Definições de atores**: `src/office/officeActorDefinitions.ts`
+- **Pets autônomos**: `src/office/petDefinitions.ts`, `src/office/PetActor.tsx`
 - **Runtime de ator (estado global)**: `src/office/ActorRuntimeProvider.tsx`, `src/office/actorRuntimeTypes.ts`
 - **Atores (modelo, animações, movimento)**: `src/office/OfficeActor.tsx`, `src/office/animationResolve.ts`
+- **Registry de posição da cena**: `src/office/SceneActorRegistry.tsx`
 - **Móveis (mesas)**: `src/office/officeFurniture.ts`, `src/office/DeskFurniture.tsx`
 - **Painel de controle**: `src/components/ActorControlPanel.tsx`, `src/components/ActorAnimationToolbar.tsx`
 - **Realtime**: `src/realtime/tasksWebsocketClient.ts`, `src/realtime/TasksRealtimeBridge.tsx`, `src/realtime/tasksRealtimeTypes.ts`
@@ -250,9 +252,9 @@ flowchart LR
 
 ## Checklist de entendimento rápido
 
-- **Renderização**: `App.tsx` monta `Canvas` + `OfficeStage` + `OfficeActor[]`.
+- **Renderização**: `App.tsx` monta `Canvas` + `OfficeStage` + `OfficeActor[]` + `PetActor[]`.
+- **Pets**: `PetActor.tsx` controla `cat` e `dog` com ações aleatórias independentes do realtime.
 - **Escolha de ator**: `ActorControlPanel` mantém `selectedActorId` e chama `setAnimation`/interações.
 - **Estado**: `ActorRuntimeProvider` é a fonte de verdade (`animationId`, `command`).
 - **WebSocket**: `tasksWebsocketClient.ts` conecta com token e reconecta; `TasksRealtimeBridge.tsx` traduz eventos em comandos/animações.
 - **Animações**: `OfficeActor.tsx` escolhe clip via `animationResolve.ts` e aplica `fadeIn/fadeOut`.
-

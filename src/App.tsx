@@ -5,73 +5,83 @@ import { Environment, OrbitControls, PerspectiveCamera } from '@react-three/drei
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ActorControlPanel } from './components/ActorControlPanel';
 import { ActorRuntimeProvider } from './office/ActorRuntimeProvider';
+import { SceneActorRegistryProvider } from './office/SceneActorRegistry';
 import { buildInitialActorRuntime, OFFICE_ACTOR_DEFINITIONS } from './office/officeActorDefinitions';
 import { DeskFurniture } from './office/DeskFurniture';
 import { OFFICE_FURNITURE } from './office/officeFurniture';
 import { OfficeActor } from './office/OfficeActor';
+import { PetActor } from './office/PetActor';
+import { PET_DEFINITIONS, PET_STATIONS } from './office/petDefinitions';
 import { SCENE_CONFIG } from './sceneConfig';
 import { TasksRealtimeBridge } from './realtime/TasksRealtimeBridge';
+
+const WORKER_ACTOR_IDS = OFFICE_ACTOR_DEFINITIONS.map((definition) => definition.id);
 
 function App() {
   const orbitRef = useRef<OrbitControlsImpl | null>(null);
 
   return (
     <ActorRuntimeProvider initialActors={buildInitialActorRuntime('idle')}>
-      <div className="office-layout">
-        <aside className="office-sidebar">
-          <ActorControlPanel />
-        </aside>
-        <div className="office-canvas-host">
-          <TasksRealtimeBridge />
-          <Canvas style={{ position: 'absolute', inset: 0 }} shadows gl={{ antialias: true }}>
-            <PerspectiveCamera
-              makeDefault
-              fov={SCENE_CONFIG.camera.fov}
-              position={SCENE_CONFIG.camera.position}
-            />
+      <SceneActorRegistryProvider>
+        <div className="office-layout">
+          <aside className="office-sidebar">
+            <ActorControlPanel />
+          </aside>
+          <div className="office-canvas-host">
+            <TasksRealtimeBridge />
+            <Canvas style={{ position: 'absolute', inset: 0 }} shadows gl={{ antialias: true }}>
+              <PerspectiveCamera
+                makeDefault
+                fov={SCENE_CONFIG.camera.fov}
+                position={SCENE_CONFIG.camera.position}
+              />
 
-            <color attach="background" args={["#0a0a0a"]} />
-            <fog attach="fog" args={['#0a0a0a', 28, 78]} />
+              <color attach="background" args={["#0a0a0a"]} />
+              <fog attach="fog" args={['#0a0a0a', 28, 78]} />
 
-            <ambientLight intensity={6.2} />
-            <hemisphereLight args={['#dce4f2', '#5c6575', 1.35]} />
-            <directionalLight
-              castShadow
-              intensity={2.85}
-              position={[6, 10, 4]}
-              shadow-mapSize-width={2048}
-              shadow-mapSize-height={2048}
-            />
-            <directionalLight position={[0, 9, 18]} intensity={4.9} castShadow={false}>
-              <object3D attach="target" position={[0, 0.35, 0]} />
-            </directionalLight>
+              <ambientLight intensity={6.2} />
+              <hemisphereLight args={['#dce4f2', '#5c6575', 1.35]} />
+              <directionalLight
+                castShadow
+                intensity={2.85}
+                position={[6, 10, 4]}
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+              />
+              <directionalLight position={[0, 9, 18]} intensity={4.9} castShadow={false}>
+                <object3D attach="target" position={[0, 0.35, 0]} />
+              </directionalLight>
 
-            <Suspense fallback={null}>
-              <Environment preset="city" environmentIntensity={1.12} />
-              <OfficeStage />
-              {OFFICE_ACTOR_DEFINITIONS.map((def) => (
-                <OfficeActor
-                  key={def.id}
-                  actorId={def.id}
-                  name={def.name}
-                  character={def.character}
-                  spawnPosition={def.spawnPosition}
-                />
-              ))}
-            </Suspense>
+              <Suspense fallback={null}>
+                <Environment preset="city" environmentIntensity={1.12} />
+                <OfficeStage />
+                {OFFICE_ACTOR_DEFINITIONS.map((def) => (
+                  <OfficeActor
+                    key={def.id}
+                    actorId={def.id}
+                    name={def.name}
+                    character={def.character}
+                    spawnPosition={def.spawnPosition}
+                  />
+                ))}
+                {PET_DEFINITIONS.map((pet) => (
+                  <PetActor key={pet.id} pet={pet} stations={PET_STATIONS} actorIds={WORKER_ACTOR_IDS} />
+                ))}
+              </Suspense>
 
-            <OrbitControls
-              ref={orbitRef}
-              enablePan={false}
-              target={SCENE_CONFIG.camera.target}
-              maxPolarAngle={SCENE_CONFIG.camera.maxPolarAngle}
-              minDistance={SCENE_CONFIG.camera.minDistance}
-              maxDistance={SCENE_CONFIG.camera.maxDistance}
-            />
-            <SyncOrbitCamera orbitRef={orbitRef} />
-          </Canvas>
+              <OrbitControls
+                ref={orbitRef}
+                enablePan={false}
+                target={SCENE_CONFIG.camera.target}
+                maxPolarAngle={SCENE_CONFIG.camera.maxPolarAngle}
+                minDistance={SCENE_CONFIG.camera.minDistance}
+                maxDistance={SCENE_CONFIG.camera.maxDistance}
+              />
+              <SyncOrbitCamera orbitRef={orbitRef} />
+            </Canvas>
+          </div>
         </div>
-      </div>
+      </SceneActorRegistryProvider>
     </ActorRuntimeProvider>
   );
 }
@@ -127,6 +137,10 @@ function OfficeStage() {
           ownerActorId={desk.ownerActorId}
         />
       ))}
+
+      {PET_STATIONS.map((station) => (
+        <PetStationMarker key={station.id} kind={station.kind} position={station.position} />
+      ))}
     </group>
   );
 }
@@ -176,6 +190,29 @@ function BoundsFrame() {
         <edgesGeometry args={[new THREE.BoxGeometry(width, 0.02, depth)]} />
         <lineBasicMaterial color="#cbd5e1" />
       </lineSegments>
+    </group>
+  );
+}
+
+function PetStationMarker({
+  kind,
+  position,
+}: {
+  kind: 'food' | 'water';
+  position: [number, number, number];
+}) {
+  const color = kind === 'food' ? '#f59e0b' : '#38bdf8';
+
+  return (
+    <group position={position}>
+      <mesh castShadow receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.28, 0.33, 0.09, 20]} />
+        <meshStandardMaterial color="#475569" roughness={0.78} metalness={0.2} />
+      </mesh>
+      <mesh position={[0, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.18, 0.18, 0.03, 20]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.2} />
+      </mesh>
     </group>
   );
 }
