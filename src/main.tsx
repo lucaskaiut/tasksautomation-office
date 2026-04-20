@@ -5,8 +5,14 @@ import './index.css'
 import App from './App.tsx'
 import { OFFICE_ACTOR_DEFINITIONS, resolveCharacterModelUrl } from './office/officeActorDefinitions'
 import { OFFICE_FURNITURE } from './office/officeFurniture'
+import { PET_DEFINITIONS } from './office/petDefinitions'
 
-const characterModelUrls = [...new Set(OFFICE_ACTOR_DEFINITIONS.map((d) => resolveCharacterModelUrl(d.character)))]
+const characterModelUrls = [
+  ...new Set([
+    ...OFFICE_ACTOR_DEFINITIONS.map((d) => resolveCharacterModelUrl(d.character)),
+    ...PET_DEFINITIONS.map((pet) => resolveCharacterModelUrl(pet.character)),
+  ]),
+]
 characterModelUrls.forEach((url) => useGLTF.preload(url))
 const furnitureModelUrls = [
   ...new Set(OFFICE_FURNITURE.map((piece) => piece.modelUrl).filter((url): url is string => Boolean(url))),

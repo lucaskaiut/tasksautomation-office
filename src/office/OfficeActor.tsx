@@ -3,10 +3,12 @@ import { Html, useAnimations, useGLTF } from '@react-three/drei';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { SCENE_CONFIG } from '../sceneConfig';
-import { isPointBlockedByFurniture, resolveFurnitureCollision } from './officeFurniture';
+import { resolveFurnitureCollision } from './officeFurniture';
 import { resolveCharacterModelUrl } from './officeActorDefinitions';
 import { clipSearchVariantsWithFallback, findAnimationAction } from './animationResolve';
 import { useActorRuntime } from './ActorRuntimeProvider';
+import { useSceneActorRegistry } from './SceneActorRegistry';
+import { clampPosition, createRandomTarget, lerpAngle } from './motion';
 
 const WANDER_ANIMATION_IDS = new Set(['walk', 'sprint']);
 const ACTOR_COLLISION_RADIUS = 0.32;
@@ -29,9 +31,10 @@ export function OfficeActor({
   const rootRef = useRef<THREE.Group>(null);
   const skinRef = useRef<THREE.Object3D>(null);
   const targetRef = useRef(
-    createNextTarget(SCENE_CONFIG.actor.bounds, { x: spawnPosition[0], z: spawnPosition[2] })
+    createRandomTarget(SCENE_CONFIG.actor.bounds, { x: spawnPosition[0], z: spawnPosition[2] })
   );
   const { animationId, command, dispatch } = useActorRuntime(actorId);
+  const { registerActor } = useSceneActorRegistry();
   const lastRequestedAnimationRef = useRef<string | null>(null);
 
   const modelUrl = useMemo(() => resolveCharacterModelUrl(character), [character]);
@@ -52,6 +55,18 @@ export function OfficeActor({
       clipAction.fadeOut(0.2);
     };
   }, [actions, names, animationId]);
+
+  useEffect(() => {
+    return registerActor(actorId, () => {
+      const root = rootRef.current;
+      if (!root) return null;
+      return {
+        x: root.position.x,
+        y: root.position.y,
+        z: root.position.z,
+      };
+    });
+  }, [actorId, registerActor]);
 
   const hasCommand = Boolean(command && command.type !== 'NONE');
   const wander = WANDER_ANIMATION_IDS.has(animationId) && !hasCommand;
@@ -175,7 +190,7 @@ export function OfficeActor({
     const distance = Math.sqrt(dx * dx + dz * dz);
 
     if (distance < 0.15) {
-      targetRef.current = createNextTarget(SCENE_CONFIG.actor.bounds, current);
+      targetRef.current = createRandomTarget(SCENE_CONFIG.actor.bounds, current);
       return;
     }
 
@@ -219,50 +234,6 @@ export function OfficeActor({
   );
 }
 
-function createNextTarget(
-  bounds: { minX: number; maxX: number; minZ: number; maxZ: number },
-  currentPosition?: { x: number; z: number }
-) {
-  const padding = 0.35;
-  const minX = bounds.minX + padding;
-  const maxX = bounds.maxX - padding;
-  const minZ = bounds.minZ + padding;
-  const maxZ = bounds.maxZ - padding;
-
-  let x = randomBetween(minX, maxX);
-  let z = randomBetween(minZ, maxZ);
-  let attempts = 0;
-
-  while (attempts < 18) {
-    const tooClose = currentPosition ? distance2D(currentPosition.x, currentPosition.z, x, z) < 1.2 : false;
-    const blocked = isPointBlockedByFurniture(x, z, ACTOR_COLLISION_RADIUS);
-    if (!tooClose && !blocked) {
-      break;
-    }
-    x = randomBetween(minX, maxX);
-    z = randomBetween(minZ, maxZ);
-    attempts += 1;
-  }
-
-  if (currentPosition && attempts >= 18) {
-    while (distance2D(currentPosition.x, currentPosition.z, x, z) < 1.2 && attempts < 30) {
-      x = randomBetween(minX, maxX);
-      z = randomBetween(minZ, maxZ);
-      attempts += 1;
-    }
-  }
-
-  return { x, z };
-}
-
-function clampPosition(
-  position: { x: number; z: number },
-  bounds: { minX: number; maxX: number; minZ: number; maxZ: number }
-) {
-  position.x = Math.max(bounds.minX, Math.min(bounds.maxX, position.x));
-  position.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, position.z));
-}
-
 function moveActor(
   position: { x: number; z: number },
   direction: { x: number; z: number },
@@ -280,19 +251,4 @@ function moveActor(
 
   position.x = resolved.x;
   position.z = resolved.z;
-}
-
-function lerpAngle(start: number, end: number, alpha: number) {
-  const delta = ((((end - start) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-  return start + delta * alpha;
-}
-
-function randomBetween(min: number, max: number) {
-  return Math.random() * (max - min) + min;
-}
-
-function distance2D(ax: number, az: number, bx: number, bz: number) {
-  const dx = bx - ax;
-  const dz = bz - az;
-  return Math.sqrt(dx * dx + dz * dz);
 }
