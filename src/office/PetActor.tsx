@@ -1,4 +1,4 @@
-import { Html, useAnimations, useGLTF } from '@react-three/drei';
+import { useAnimations, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import * as THREE from 'three';
@@ -82,7 +82,6 @@ function LoadedPetActor({
   modelUrl: string;
 }) {
   const [animationId, setAnimationId] = useState<string>(PET_WALK_ANIMATION_ID);
-  const [currentActionLabel, setCurrentActionLabel] = useState('Passeando');
   const actionRef = useRef<PetActionState | null>(null);
   const rootRef = useRef<THREE.Group>(null);
   const skinRef = useRef<THREE.Object3D>(null);
@@ -116,7 +115,6 @@ function LoadedPetActor({
       stations,
     });
     setAnimationId(PET_WALK_ANIMATION_ID);
-    setCurrentActionLabel(actionRef.current.label);
   }, [actorIds, getActorPosition, pet.spawnPosition, stations]);
 
   useFrame((_, delta) => {
@@ -216,7 +214,6 @@ function LoadedPetActor({
       stations,
     });
     actionRef.current = nextAction;
-    setCurrentActionLabel(nextAction.label);
     syncAnimation(PET_WALK_ANIMATION_ID, setAnimationId, lastAnimationRef);
   }
 
