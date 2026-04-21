@@ -223,21 +223,6 @@ function LoadedPetActor({
   return (
     <group ref={rootRef} position={pet.spawnPosition}>
       <primitive object={clonedScene} ref={skinRef} scale={pet.scale} castShadow />
-      <Html position={[0, pet.labelHeight, 0]} center style={{ pointerEvents: 'none' }}>
-        <div
-          style={{
-            padding: '4px 10px',
-            borderRadius: 999,
-            fontSize: 11,
-            fontWeight: 700,
-            color: '#f8fafc',
-            background: 'rgba(15, 23, 42, 0.8)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {pet.name} · {currentActionLabel}
-        </div>
-      </Html>
     </group>
   );
 }

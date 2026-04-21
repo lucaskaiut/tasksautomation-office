@@ -30,10 +30,10 @@ export const OFFICE_FURNITURE: OfficeFurniturePiece[] = [
   {
     id: 'sofa-idle-lounge',
     kind: 'sofa',
-    position: [-6.85, 0, 5.42],
+    position: [-5.45, 0, 3.8],
     rotation: [0, Math.PI, 0],
     modelUrl: '/models/furnitures/loungeDesignSofa.glb',
-    scale: 1.18,
+    scale: 2.7,
     collider: { size: [3.4, 1], offset: [0, 0] },
   },
 ];

@@ -1,7 +1,7 @@
 import { Suspense, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment, OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { Environment, GizmoHelper, GizmoViewport, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ActorControlPanel } from './components/ActorControlPanel';
 import { ActorRuntimeProvider } from './office/ActorRuntimeProvider';
@@ -85,6 +85,11 @@ function App() {
                 maxDistance={SCENE_CONFIG.camera.maxDistance}
               />
               <SyncOrbitCamera orbitRef={orbitRef} />
+              {isDev ? (
+                <GizmoHelper alignment="bottom-right" margin={[84, 84]}>
+                  <GizmoViewport axisColors={['#ef4444', '#22c55e', '#3b82f6']} labelColor="white" />
+                </GizmoHelper>
+              ) : null}
             </Canvas>
           </div>
         </div>
