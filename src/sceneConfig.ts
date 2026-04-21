@@ -3,7 +3,7 @@ export const ROOM = { width: 18, depth: 12 };
 export const SCENE_CONFIG = {
   room: ROOM,
   camera: {
-    position: [0, 7.1, -12.4] as [number, number, number],
+    position: [10.51, 16.58, -10.51] as [number, number, number],
     target: [0, 0.35, 0] as [number, number, number],
     fov: 45,
     minDistance: 7,

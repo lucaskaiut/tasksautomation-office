@@ -92,6 +92,44 @@
   min-height: 0;
 }
 
+.office-debug-hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.25;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+
+.office-debug-hud__title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #fff;
+}
+
+.office-debug-hud__row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.office-debug-hud__label {
+  opacity: 0.85;
+}
+
+.office-debug-hud__value {
+  color: #fff;
+}
+
 .office-canvas-host canvas {
   display: block;
   width: 100%;

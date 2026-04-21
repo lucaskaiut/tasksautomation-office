@@ -1,6 +1,6 @@
-import { Suspense, useLayoutEffect, useRef, type RefObject } from 'react';
+import { Suspense, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import * as THREE from 'three';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { ActorControlPanel } from './components/ActorControlPanel';
@@ -20,6 +20,8 @@ const WORKER_ACTOR_IDS = OFFICE_ACTOR_DEFINITIONS.map((definition) => definition
 
 function App() {
   const orbitRef = useRef<OrbitControlsImpl | null>(null);
+  const [cameraPosition, setCameraPosition] = useState<[number, number, number] | null>(null);
+  const isDev = import.meta.env.DEV;
 
   return (
     <ActorRuntimeProvider initialActors={buildInitialActorRuntime('idle')}>
@@ -30,6 +32,7 @@ function App() {
           </aside>
           <div className="office-canvas-host">
             <TasksRealtimeBridge />
+            {isDev ? <DebugHud cameraPosition={cameraPosition} /> : null}
             <Canvas style={{ position: 'absolute', inset: 0 }} shadows gl={{ antialias: true }}>
               <PerspectiveCamera
                 makeDefault
@@ -39,6 +42,8 @@ function App() {
 
               <color attach="background" args={["#0a0a0a"]} />
               <fog attach="fog" args={['#0a0a0a', 28, 78]} />
+
+              {isDev ? <CameraDebugReporter onPosition={setCameraPosition} /> : null}
 
               <ambientLight intensity={6.2} />
               <hemisphereLight args={['#dce4f2', '#5c6575', 1.35]} />
@@ -86,6 +91,47 @@ function App() {
       </SceneActorRegistryProvider>
     </ActorRuntimeProvider>
   );
+}
+
+function DebugHud({ cameraPosition }: { cameraPosition: [number, number, number] | null }) {
+  const fmt = (n: number) => n.toFixed(2);
+
+  return (
+    <div className="office-debug-hud" role="status" aria-label="Debug">
+      <div className="office-debug-hud__title">Debug</div>
+      <div className="office-debug-hud__row">
+        <span className="office-debug-hud__label">Camera</span>
+        <span className="office-debug-hud__value">
+          {cameraPosition ? `x=${fmt(cameraPosition[0])} y=${fmt(cameraPosition[1])} z=${fmt(cameraPosition[2])}` : '—'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CameraDebugReporter({
+  onPosition,
+}: {
+  onPosition: (pos: [number, number, number]) => void;
+}) {
+  const camera = useThree((s) => s.camera);
+  const lastSentAt = useRef(0);
+  const lastSent = useRef<[number, number, number] | null>(null);
+
+  useFrame(({ clock }) => {
+    const now = clock.getElapsedTime();
+    if (now - lastSentAt.current < 0.1) return;
+
+    const p: [number, number, number] = [camera.position.x, camera.position.y, camera.position.z];
+    const prev = lastSent.current;
+    if (prev && prev[0] === p[0] && prev[1] === p[1] && prev[2] === p[2]) return;
+
+    lastSentAt.current = now;
+    lastSent.current = p;
+    onPosition(p);
+  });
+
+  return null;
 }
 
 function SyncOrbitCamera({ orbitRef }: { orbitRef: RefObject<OrbitControlsImpl | null> }) {
@@ -165,6 +211,7 @@ function RoomWalls() {
   const halfD = floorD / 2;
   const wallH = 4.6;
   const wallT = 0.14;
+  const triLowH = 1.25;
   const y = wallH / 2;
 
   return (
@@ -173,15 +220,100 @@ function RoomWalls() {
         <boxGeometry args={[floorW, wallH, wallT]} />
         <meshStandardMaterial color="#3d4a5c" roughness={0.88} metalness={0.04} />
       </mesh>
-      <mesh castShadow receiveShadow position={[halfW + wallT / 2, y, 0]}>
-        <boxGeometry args={[wallT, wallH, floorD]} />
-        <meshStandardMaterial color="#3d4a5c" roughness={0.88} metalness={0.04} />
-      </mesh>
+      <CornerCutWall
+        width={floorW}
+        highHeight={wallH}
+        lowHeight={triLowH}
+        thickness={wallT}
+        z={-halfD - wallT / 2}
+        apexSide="right"
+      />
+      <CornerCutSideWall
+        depth={floorD}
+        highHeight={wallH}
+        lowHeight={triLowH}
+        thickness={wallT}
+        x={halfW + wallT / 2}
+        apexSide="far"
+      />
       <mesh castShadow receiveShadow position={[-halfW - wallT / 2, y, 0]}>
         <boxGeometry args={[wallT, wallH, floorD]} />
         <meshStandardMaterial color="#3d4a5c" roughness={0.88} metalness={0.04} />
       </mesh>
     </group>
+  );
+}
+
+function CornerCutWall({
+  width,
+  highHeight,
+  lowHeight,
+  thickness,
+  z,
+  apexSide,
+}: {
+  width: number;
+  highHeight: number;
+  lowHeight: number;
+  thickness: number;
+  z: number;
+  apexSide: 'left' | 'right';
+}) {
+  const geometry = useMemo(() => {
+    const halfW = width / 2;
+    const shape = new THREE.Shape();
+    shape.moveTo(-halfW, 0);
+    shape.lineTo(-halfW, apexSide === 'left' ? lowHeight : highHeight);
+    shape.lineTo(halfW, apexSide === 'left' ? highHeight : lowHeight);
+    shape.lineTo(halfW, 0);
+    shape.lineTo(-halfW, 0);
+
+    const g = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+    g.translate(0, 0, -thickness / 2);
+    return g;
+  }, [width, highHeight, lowHeight, thickness, apexSide]);
+
+  return (
+    <mesh castShadow receiveShadow position={[0, 0, z]} geometry={geometry}>
+      <meshStandardMaterial color="#3d4a5c" roughness={0.88} metalness={0.04} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
+function CornerCutSideWall({
+  depth,
+  highHeight,
+  lowHeight,
+  thickness,
+  x,
+  apexSide,
+}: {
+  depth: number;
+  highHeight: number;
+  lowHeight: number;
+  thickness: number;
+  x: number;
+  apexSide: 'near' | 'far';
+}) {
+  const geometry = useMemo(() => {
+    const halfD = depth / 2;
+    const shape = new THREE.Shape();
+    shape.moveTo(-halfD, 0);
+    shape.lineTo(-halfD, apexSide === 'near' ? lowHeight : highHeight);
+    shape.lineTo(halfD, apexSide === 'near' ? highHeight : lowHeight);
+    shape.lineTo(halfD, 0);
+    shape.lineTo(-halfD, 0);
+
+    const g = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+    g.translate(0, 0, -thickness / 2);
+    g.rotateY(Math.PI / 2);
+    return g;
+  }, [depth, highHeight, lowHeight, thickness, apexSide]);
+
+  return (
+    <mesh castShadow receiveShadow position={[x, 0, 0]} geometry={geometry}>
+      <meshStandardMaterial color="#3d4a5c" roughness={0.88} metalness={0.04} side={THREE.DoubleSide} />
+    </mesh>
   );
 }
 
